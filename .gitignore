@@ -1,0 +1,10 @@
+# Credentials and Tokens
+credentials.json
+token.json
+
+# Python specific
+__pycache__/
+*.pyc
+
+# VS Code settings
+.vscode/
