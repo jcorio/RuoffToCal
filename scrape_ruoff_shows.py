@@ -231,12 +231,75 @@ def compare_and_notify(current_shows_data):
 
     save_current_shows_as_known(current_shows_data)
 
+def generate_html_report(shows_data, new_shows_set):
+    """Generates a print-friendly HTML report of all shows, highlighting new shows."""
+    html_head = '''
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>Ruoff Music Center Shows</title>
+        <style>
+            body { font-family: 'Segoe UI', Arial, sans-serif; background: #f8f9fa; color: #222; margin: 0; padding: 0; }
+            .container { max-width: 900px; margin: 30px auto; background: #fff; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); padding: 32px 40px 40px 40px; }
+            h1 { text-align: center; margin-bottom: 0.5em; }
+            .legend { margin-bottom: 1.5em; font-size: 1em; }
+            .legend .badge { display: inline-block; padding: 0.2em 0.7em; border-radius: 12px; background: #28a745; color: #fff; font-size: 0.95em; margin-right: 0.5em; }
+            table { width: 100%; border-collapse: collapse; margin-top: 1em; }
+            th, td { padding: 0.85em 1em; border-bottom: 1px solid #e0e0e0; text-align: left; }
+            th { background: #f1f3f6; font-weight: 600; }
+            tr.new-show { background: #e6ffe6; }
+            .badge-new { display: inline-block; background: #28a745; color: #fff; border-radius: 10px; padding: 0.2em 0.7em; font-size: 0.95em; margin-left: 0.5em; }
+            @media print {
+                body, .container { background: #fff !important; box-shadow: none !important; }
+                .legend { color: #222 !important; }
+                .badge, .badge-new { color: #fff !important; background: #28a745 !important; }
+            }
+        </style>
+    </head>
+    <body>
+    <div class="container">
+        <h1>Ruoff Music Center Shows</h1>
+        <div class="legend">
+            <span class="badge">NEW</span> Newly added since last run
+        </div>
+        <table>
+            <thead>
+                <tr><th>#</th><th>Show Title</th><th>Date/Time</th></tr>
+            </thead>
+            <tbody>
+    '''
+    html_rows = []
+    for idx, show in enumerate(shows_data, 1):
+        key = f"{show['title']}|{show['date_time_str']}"
+        is_new = key in new_shows_set
+        row_class = 'new-show' if is_new else ''
+        badge = '<span class="badge-new">NEW</span>' if is_new else ''
+        html_rows.append(f'<tr class="{row_class}"><td>{idx}</td><td>{show["title"]} {badge}</td><td>{show["date_time_str"]}</td></tr>')
+    html_tail = '''
+            </tbody>
+        </table>
+        <div style="margin-top:2em; font-size:0.95em; color:#888; text-align:center;">
+            Generated on: ''' + datetime.now().strftime('%Y-%m-%d %I:%M %p') + '''
+        </div>
+    </div>
+    </body>
+    </html>
+    '''
+    with open('ruoff_shows.html', 'w', encoding='utf-8') as f:
+        f.write(html_head + '\n'.join(html_rows) + html_tail)
+    print(f"Saved HTML report to ruoff_shows.html")
+
+def filter_shows(shows_data):
+    """Omit shows with the title '2025 Premium Season Ticket Priority List' (case-insensitive, ignore spaces)."""
+    return [show for show in shows_data if show['title'].strip().lower() != '2025 premium season ticket priority list']
 
 if __name__ == "__main__":
     print(f"Scraping shows from {URL}...")
     scraped_shows = scrape_shows()
+    if scraped_shows:
+        scraped_shows = filter_shows(scraped_shows)
     processed_shows_for_calendar = [] # For shows successfully parsed for calendar
-
     current_year = datetime.now().year
 
     if scraped_shows:
@@ -259,7 +322,13 @@ if __name__ == "__main__":
                 print(f"Could not parse date/time for '{show['title']}' ({show['date_time_str']}). Skipping calendar add.")
 
         save_shows_to_csv(scraped_shows) # Save raw scraped data
+        # --- Compare and get new shows ---
+        last_shows_set = get_last_known_shows()
+        current_shows_set = set(f"{show['title']}|{show['date_time_str']}" for show in scraped_shows)
+        new_shows = current_shows_set - last_shows_set
         compare_and_notify(scraped_shows) # Compare based on raw scraped data
+        # --- Generate HTML report ---
+        generate_html_report(scraped_shows, new_shows)
 
         if processed_shows_for_calendar:
             print("\n--- Adding/Checking Shows in Google Calendar ---")
