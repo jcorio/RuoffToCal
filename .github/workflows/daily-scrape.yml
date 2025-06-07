@@ -2,7 +2,7 @@ name: Daily Ruoff Scrape
 
 on:
   schedule:
-    - cron: '0 10 * * *'  # Runs every day at 10:00 UTC
+    - cron: '0 11 * * *'  # Runs every day at 6:00 AM EST (11:00 UTC during standard time)
   workflow_dispatch:
 
 jobs:
@@ -22,6 +22,12 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Write Google credentials
+        run: |
+          echo "${{ secrets.GOOGLE_CREDENTIALS_JSON }}" > credentials.json
+          echo "${{ secrets.GOOGLE_TOKEN_JSON }}" > token.json
+        shell: bash
+
       - name: Run scrape script
         run: python scrape_ruoff_shows.py
 
@@ -29,6 +35,6 @@ jobs:
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add ruoff_shows.csv ruoff_shows.html last_known_shows.txt
+          git add ruoff_shows.csv ruoff_shows.html last_known_shows.txt docs/index.html
           git commit -m "Automated daily scrape: $(date -u)" || echo "No changes to commit"
           git push 
