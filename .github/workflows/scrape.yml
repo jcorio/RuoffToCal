@@ -35,5 +35,5 @@ jobs:
 
       - name: Commit and push if changed
         run: |
-          git add ruoff_shows.html ruoff_shows.csv last_known_shows.txt
+          git add docs/ ruoff_shows.csv last_known_shows.txt
           git diff --quiet && git diff --staged --quiet || (git commit -m "Update scraped shows data" && git push) 

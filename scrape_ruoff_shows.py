@@ -6,6 +6,7 @@ import re
 from dateutil import parser as dateutil_parser
 from dateutil import tz
 import google_calendar_service
+import os
 
 URL = "https://www.livenation.com/venue/KovZpvEk7A/ruoff-music-center-events"
 SHOWS_CSV_FILE = "ruoff_shows.csv"
@@ -233,6 +234,9 @@ def compare_and_notify(current_shows_data):
 
 def generate_html_report(shows_data, new_shows_set):
     """Generates a print-friendly HTML report of all shows, highlighting new shows."""
+    # Ensure docs directory exists
+    os.makedirs('docs', exist_ok=True)
+    
     html_head = '''
     <!DOCTYPE html>
     <html lang="en">
@@ -286,9 +290,9 @@ def generate_html_report(shows_data, new_shows_set):
     </body>
     </html>
     '''
-    with open('ruoff_shows.html', 'w', encoding='utf-8') as f:
+    with open('docs/index.html', 'w', encoding='utf-8') as f:
         f.write(html_head + '\n'.join(html_rows) + html_tail)
-    print(f"Saved HTML report to ruoff_shows.html")
+    print(f"Saved HTML report to docs/index.html")
 
 def filter_shows(shows_data):
     """Omit shows with the title '2025 Premium Season Ticket Priority List' (case-insensitive, ignore spaces)."""
@@ -333,22 +337,26 @@ if __name__ == "__main__":
         if processed_shows_for_calendar:
             print("\n--- Adding/Checking Shows in Google Calendar ---")
             print("Attempting to get Google Calendar service...")
-            cal_service = google_calendar_service.get_calendar_service()
+            try:
+                cal_service = google_calendar_service.get_calendar_service()
 
-            if cal_service:
-                print("Successfully obtained Google Calendar service.")
-                for show_details in processed_shows_for_calendar:
-                    print(f"Processing for calendar: {show_details['title']} at {show_details['start_datetime'].strftime('%Y-%m-%d %I:%M %p %Z')}")
-                    google_calendar_service.add_event_to_calendar(
-                        service=cal_service,
-                        summary=show_details['title'],
-                        start_datetime=show_details['start_datetime'],
-                        end_datetime=show_details['end_datetime'],
-                        description=show_details['description'],
-                        timezone=DEFAULT_EVENT_TIMEZONE 
-                    )
-            else:
-                print("Failed to obtain Google Calendar service. Cannot add events.")
+                if cal_service:
+                    print("Successfully obtained Google Calendar service.")
+                    for show_details in processed_shows_for_calendar:
+                        print(f"Processing for calendar: {show_details['title']} at {show_details['start_datetime'].strftime('%Y-%m-%d %I:%M %p %Z')}")
+                        google_calendar_service.add_event_to_calendar(
+                            service=cal_service,
+                            summary=show_details['title'],
+                            start_datetime=show_details['start_datetime'],
+                            end_datetime=show_details['end_datetime'],
+                            description=show_details['description'],
+                            timezone=DEFAULT_EVENT_TIMEZONE 
+                        )
+                else:
+                    print("Failed to obtain Google Calendar service. Calendar operations skipped.")
+            except Exception as e:
+                print(f"Error during calendar operations: {e}")
+                print("Calendar operations skipped due to error.")
         else:
             print("\nNo shows with valid date/time information to process for Google Calendar.")
 
