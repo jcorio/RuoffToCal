@@ -21,9 +21,9 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           
-      - name: Create credentials file
+      - name: Create service account file
         run: |
-          echo '${{ secrets.GOOGLE_CREDENTIALS_JSON }}' > credentials.json
+          echo '${{ secrets.GOOGLE_SERVICE_ACCOUNT }}' > service-account.json
           
       - name: Run scraper
         run: python scrape_ruoff_shows.py 
