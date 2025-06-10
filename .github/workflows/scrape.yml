@@ -21,14 +21,6 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           
-      - name: Create service account file
-        run: |
-          echo '${{ secrets.GOOGLE_SERVICE_ACCOUNT }}' | jq '.' > service-account.json
-          echo "Service account file created. First few characters:"
-          head -c 50 service-account.json
-          echo -e "\nValidating JSON..."
-          jq '.' service-account.json > /dev/null && echo "JSON is valid" || echo "JSON is invalid"
-          
       - name: Run scraper
         id: scrape
         continue-on-error: true
