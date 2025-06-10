@@ -4,9 +4,6 @@ import sys
 import json
 import logging
 from google.oauth2 import service_account
-from google.auth.transport.requests import Request
-from google.oauth2.credentials import Credentials
-from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from dateutil import parser as dateutil_parser
@@ -15,8 +12,6 @@ from dateutil import tz
 # If modifying these SCOPES, delete the file token.json.
 SCOPES = ['https://www.googleapis.com/auth/calendar']
 CREDENTIALS_FILE = 'credentials.json'
-TOKEN_FILE = 'token.json'
-SERVICE_ACCOUNT_FILE = 'service-account.json'
 TARGET_CALENDAR_ID = '18d5d40ddafe357ca7f0dbadc1d0382fca050d83669e262a27287c1e27990062@group.calendar.google.com'
 
 # Set up logging
@@ -24,89 +19,18 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 def get_calendar_service():
-    """Gets the Google Calendar service using either OAuth2 or service account."""
-    # First try service account (for GitHub Actions)
-    if os.path.exists(SERVICE_ACCOUNT_FILE):
-        try:
-            logger.info("Attempting to use service account authentication")
-            with open(SERVICE_ACCOUNT_FILE, 'r') as f:
-                service_account_content = f.read()
-                logger.info(f"Service account file content length: {len(service_account_content)}")
-                try:
-                    # Validate JSON format
-                    json.loads(service_account_content)
-                    logger.info("Service account JSON is valid")
-                except json.JSONDecodeError as e:
-                    logger.error(f"Invalid service account JSON: {e}")
-                    return None
-                
-            credentials = service_account.Credentials.from_service_account_file(
-                SERVICE_ACCOUNT_FILE, scopes=SCOPES)
-            service = build('calendar', 'v3', credentials=credentials)
-            logger.info("Successfully authenticated with service account")
-            return service
-        except Exception as e:
-            logger.error(f"Service account authentication failed: {e}")
-            # Continue to try OAuth2 if service account fails
-
-    # If no service account or it failed, try OAuth2 (for local development)
-    creds = None
-    if os.path.exists(TOKEN_FILE):
-        try:
-            with open(TOKEN_FILE, 'r') as token:
-                token_content = token.read()
-                logger.info(f"Token file exists. Content length: {len(token_content)}")
-                try:
-                    # Validate JSON format
-                    json.loads(token_content)
-                    creds = Credentials.from_authorized_user_file(TOKEN_FILE, SCOPES)
-                except json.JSONDecodeError as e:
-                    logger.error(f"Invalid JSON in token file: {e}")
-                    os.remove(TOKEN_FILE)
-                    logger.info("Removed corrupted token file")
-        except Exception as e:
-            logger.error(f"Error reading token file: {e}")
-            if os.path.exists(TOKEN_FILE):
-                os.remove(TOKEN_FILE)
-                logger.info("Removed problematic token file")
-
-    if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
-            try:
-                creds.refresh(Request())
-            except Exception as e:
-                logger.error(f"Error refreshing credentials: {e}")
-                if os.path.exists(TOKEN_FILE):
-                    os.remove(TOKEN_FILE)
-                    logger.info("Removed expired token file")
-                creds = None
-        else:
-            try:
-                if not os.path.exists(CREDENTIALS_FILE):
-                    logger.error(f"Credentials file {CREDENTIALS_FILE} not found")
-                    return None
-                    
-                flow = InstalledAppFlow.from_client_secrets_file(
-                    CREDENTIALS_FILE, SCOPES)
-                creds = flow.run_local_server(port=5000)
-            except Exception as e:
-                logger.error(f"Error in OAuth flow: {e}")
-                return None
-                
-        if creds:
-            try:
-                with open(TOKEN_FILE, 'w') as token:
-                    token.write(creds.to_json())
-                logger.info("Successfully saved new token file")
-            except Exception as e:
-                logger.error(f"Error saving token file: {e}")
-                return None
-
+    """Gets the Google Calendar service using service account authentication."""
     try:
-        service = build('calendar', 'v3', credentials=creds)
+        logger.info("Attempting to use service account authentication")
+        credentials = service_account.Credentials.from_service_account_file(
+            CREDENTIALS_FILE,
+            scopes=SCOPES
+        )
+        service = build('calendar', 'v3', credentials=credentials)
+        logger.info("Successfully authenticated with service account")
         return service
-    except HttpError as error:
-        logger.error(f'An API error occurred: {error}')
+    except Exception as e:
+        logger.error(f"Service account authentication failed: {e}")
         return None
 
 def add_event_to_calendar(service, summary, start_datetime, end_datetime, description=None, timezone='America/New_York'):
