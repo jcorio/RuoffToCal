@@ -29,6 +29,17 @@ def get_calendar_service():
     if os.path.exists(SERVICE_ACCOUNT_FILE):
         try:
             logger.info("Attempting to use service account authentication")
+            with open(SERVICE_ACCOUNT_FILE, 'r') as f:
+                service_account_content = f.read()
+                logger.info(f"Service account file content length: {len(service_account_content)}")
+                try:
+                    # Validate JSON format
+                    json.loads(service_account_content)
+                    logger.info("Service account JSON is valid")
+                except json.JSONDecodeError as e:
+                    logger.error(f"Invalid service account JSON: {e}")
+                    return None
+                
             credentials = service_account.Credentials.from_service_account_file(
                 SERVICE_ACCOUNT_FILE, scopes=SCOPES)
             service = build('calendar', 'v3', credentials=credentials)
