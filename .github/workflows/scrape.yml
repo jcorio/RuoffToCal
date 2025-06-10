@@ -24,16 +24,24 @@ jobs:
       - name: Create service account file
         run: |
           echo '${{ secrets.GOOGLE_SERVICE_ACCOUNT }}' | jq '.' > service-account.json
+          echo "Service account file created. First few characters:"
+          head -c 50 service-account.json
+          echo -e "\nValidating JSON..."
+          jq '.' service-account.json > /dev/null && echo "JSON is valid" || echo "JSON is invalid"
           
       - name: Run scraper
+        id: scrape
+        continue-on-error: true
         run: python scrape_ruoff_shows.py
 
       - name: Configure Git
+        if: always()
         run: |
           git config --global user.name 'GitHub Actions'
           git config --global user.email 'actions@github.com'
 
       - name: Commit and push if changed
+        if: always()
         run: |
           git add docs/ ruoff_shows.csv last_known_shows.txt
           git diff --quiet && git diff --staged --quiet || (git commit -m "Update scraped shows data" && git push) 
