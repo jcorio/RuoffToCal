@@ -39,4 +39,4 @@ jobs:
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add ruoff_shows.csv ruoff_shows.html last_known_shows.txt docs/index.html
           git commit -m "Automated daily scrape: $(date -u)" || echo "No changes to commit"
-          git push https://x-access-token:${GH_PAT}@github.com/jcorio/RuoffToCal.git HEAD:master 
+          git push https://x-access-token:${GH_PAT}@github.com/jcorio/RuoffToCal.git HEAD:master
