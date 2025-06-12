@@ -6,6 +6,7 @@ import re
 from dateutil import parser as dateutil_parser
 from dateutil import tz
 import google_calendar_service
+import shutil
 import os
 
 URL = "https://www.livenation.com/venue/KovZpvEk7A/ruoff-music-center-events"
@@ -292,7 +293,7 @@ def generate_html_report(shows_data, new_shows_set):
     '''
     with open('docs/index.html', 'w', encoding='utf-8') as f:
         f.write(html_head + '\n'.join(html_rows) + html_tail)
-    print(f"Saved HTML report to docs/index.html")
+    print(f"Saved HTML report to ruoff_shows.html")
 
 def filter_shows(shows_data):
     """Omit shows with the title '2025 Premium Season Ticket Priority List' (case-insensitive, ignore spaces)."""
