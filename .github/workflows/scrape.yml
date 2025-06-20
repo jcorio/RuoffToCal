@@ -1,0 +1,39 @@
+name: Scrape Ruoff Shows
+
+on:
+  schedule:
+    - cron: '0 */12 * * *'  # Run every 12 hours
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.10'
+          
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          
+      - name: Run scraper
+        id: scrape
+        continue-on-error: true
+        run: python scrape_ruoff_shows.py
+
+      - name: Configure Git
+        if: always()
+        run: |
+          git config --global user.name 'GitHub Actions'
+          git config --global user.email 'actions@github.com'
+
+      - name: Commit and push if changed
+        if: always()
+        run: |
+          git add docs/ ruoff_shows.csv last_known_shows.txt
+          git diff --quiet && git diff --staged --quiet || (git commit -m "Update scraped shows data" && git push) 
