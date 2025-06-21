@@ -28,7 +28,10 @@ jobs:
         env:
           GOOGLE_CREDS: ${{ secrets.GOOGLE_CREDENTIALS_JSON }}
         run: |
-          python -c 'import os, json; f=open("credentials.json", "w"); f.write(os.environ["GOOGLE_CREDS"]); f.close()'
+          python -c 'import os; f=open("credentials.json", "w"); f.write(os.environ["GOOGLE_CREDS"]); f.close()'
+          echo "--- Verifying credentials.json SHA256 hash ---"
+          sha256sum credentials.json
+          echo "--------------------------------------------"
           echo "${{ secrets.GOOGLE_TOKEN_JSON }}" > token.json
         shell: bash
 
