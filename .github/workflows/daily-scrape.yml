@@ -25,8 +25,10 @@ jobs:
           pip install -r requirements.txt
 
       - name: Write Google credentials
+        env:
+          GOOGLE_CREDS: ${{ secrets.GOOGLE_CREDENTIALS_JSON }}
         run: |
-          echo '${{ secrets.GOOGLE_CREDENTIALS_JSON }}' > credentials.json
+          python -c 'import os, json; f=open("credentials.json", "w"); f.write(os.environ["GOOGLE_CREDS"]); f.close()'
           echo "--- Verifying credentials.json content ---"
           cat credentials.json
           echo "----------------------------------------"
