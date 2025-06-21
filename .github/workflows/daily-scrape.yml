@@ -29,9 +29,6 @@ jobs:
           GOOGLE_CREDS: ${{ secrets.GOOGLE_CREDENTIALS_JSON }}
         run: |
           python -c 'import os, json; f=open("credentials.json", "w"); f.write(os.environ["GOOGLE_CREDS"]); f.close()'
-          echo "--- Verifying credentials.json content ---"
-          cat credentials.json
-          echo "----------------------------------------"
           echo "${{ secrets.GOOGLE_TOKEN_JSON }}" > token.json
         shell: bash
 
