@@ -26,7 +26,7 @@ jobs:
 
       - name: Write Google credentials
         run: |
-          echo "${{ secrets.GOOGLE_CREDENTIALS_JSON }}" > credentials.json
+          echo '${{ secrets.GOOGLE_CREDENTIALS_JSON }}' > credentials.json
           echo "--- Verifying credentials.json content ---"
           cat credentials.json
           echo "----------------------------------------"
