@@ -30,6 +30,9 @@ jobs:
           echo "${{ secrets.GOOGLE_TOKEN_JSON }}" > token.json
         shell: bash
 
+      - name: Force time synchronization
+        run: sudo timedatectl set-ntp true
+
       - name: Run scrape script
         run: python scrape_ruoff_shows.py
 
