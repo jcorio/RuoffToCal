@@ -238,6 +238,12 @@ def generate_html_report(shows_data, new_shows_set):
     # Ensure docs directory exists
     os.makedirs('docs', exist_ok=True)
     
+    # Timezone conversion for display
+    utc_now = datetime.utcnow().replace(tzinfo=tz.UTC)
+    est_tz = tz.gettz(DEFAULT_EVENT_TIMEZONE)
+    est_now = utc_now.astimezone(est_tz)
+    generated_time_str = est_now.strftime("%Y-%m-%d %I:%M %p %Z")
+
     html_head = '''
     <!DOCTYPE html>
     <html lang="en">
@@ -260,19 +266,20 @@ def generate_html_report(shows_data, new_shows_set):
                 .legend { color: #222 !important; }
                 .badge, .badge-new { color: #fff !important; background: #28a745 !important; }
             }
+            .footer {{ text-align: center; margin-top: 2em; font-size: 0.9em; color: #777; }}
         </style>
     </head>
     <body>
-    <div class="container">
-        <h1>Ruoff Music Center Shows</h1>
-        <div class="legend">
-            <span class="badge">NEW</span> Newly added since last run
-        </div>
-        <table>
-            <thead>
-                <tr><th>#</th><th>Show Title</th><th>Date/Time</th></tr>
-            </thead>
-            <tbody>
+        <div class="container">
+            <h1>Ruoff Music Center Shows</h1>
+            <div class="legend">
+                <span class="badge">NEW</span> Newly added since last run
+            </div>
+            <table>
+                <thead>
+                    <tr><th>#</th><th>Show Title</th><th>Date/Time</th></tr>
+                </thead>
+                <tbody>
     '''
     html_rows = []
     for idx, show in enumerate(shows_data, 1):
@@ -282,18 +289,24 @@ def generate_html_report(shows_data, new_shows_set):
         badge = '<span class="badge-new">NEW</span>' if is_new else ''
         html_rows.append(f'<tr class="{row_class}"><td>{idx}</td><td>{show["title"]} {badge}</td><td>{show["date_time_str"]}</td></tr>')
     html_tail = '''
-            </tbody>
-        </table>
-        <div style="margin-top:2em; font-size:0.95em; color:#888; text-align:center;">
-            Generated on: ''' + datetime.now().strftime('%Y-%m-%d %I:%M %p') + '''
+                </tbody>
+            </table>
+            <div class="footer">
+                <p>Generated on: {generated_time_str}</p>
+                <p>Source: <a href="{URL}" target="_blank">Live Nation</a></p>
+            </div>
         </div>
-    </div>
     </body>
     </html>
     '''
-    with open('docs/index.html', 'w', encoding='utf-8') as f:
-        f.write(html_head + '\n'.join(html_rows) + html_tail)
-    print(f"Saved HTML report to ruoff_shows.html")
+    html_content = html_head + '\n'.join(html_rows) + html_tail
+    
+    # Save the report
+    report_path = os.path.join('docs', 'index.html')
+    with open(report_path, 'w', encoding='utf-8') as f:
+        f.write(html_content.format(generated_time_str=generated_time_str)) # Use format to insert the time
+    
+    print(f"Saved HTML report to {report_path}")
 
 def filter_shows(shows_data):
     """Omit shows with the title '2025 Premium Season Ticket Priority List' (case-insensitive, ignore spaces)."""
