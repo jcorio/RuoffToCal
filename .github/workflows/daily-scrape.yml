@@ -36,7 +36,10 @@ jobs:
         shell: bash
 
       - name: Sync time
-        run: sudo ntpdate time.google.com
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ntpdate
+          sudo ntpdate time.google.com
 
       - name: Run scrape script
         run: python scrape_ruoff_shows.py
