@@ -25,21 +25,10 @@ jobs:
           pip install -r requirements.txt
 
       - name: Write Google credentials
-        env:
-          GOOGLE_CREDS: ${{ secrets.GOOGLE_CREDENTIALS_JSON }}
         run: |
-          python -c 'import os; f=open("credentials.json", "w"); f.write(os.environ["GOOGLE_CREDS"]); f.close()'
-          echo "--- Verifying credentials.json SHA256 hash ---"
-          sha256sum credentials.json
-          echo "--------------------------------------------"
+          echo "${{ secrets.GOOGLE_CREDENTIALS_JSON }}" | base64 --decode > credentials.json
           echo "${{ secrets.GOOGLE_TOKEN_JSON }}" > token.json
         shell: bash
-
-      - name: Sync time
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y ntpdate
-          sudo ntpdate time.google.com
 
       - name: Run scrape script
         run: python scrape_ruoff_shows.py
