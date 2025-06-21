@@ -35,6 +35,9 @@ jobs:
           echo "${{ secrets.GOOGLE_TOKEN_JSON }}" > token.json
         shell: bash
 
+      - name: Sync time
+        run: sudo ntpdate time.google.com
+
       - name: Run scrape script
         run: python scrape_ruoff_shows.py
 
