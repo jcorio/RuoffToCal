@@ -1,29 +1,54 @@
 # Ruoff Music Center Show Calendar Manager
 
-This project helps manage concert schedules for Ruoff Music Center by adding them to a Google Calendar.
+This project scrapes upcoming shows for Ruoff Music Center from Live Nation, adds them to a Google Calendar, and generates an HTML report. The process is fully automated to run daily via GitHub Actions.
 
 ## Features
 
-*   `scrape_ruoff_shows.py`: (Potentially deprecated) Scrapes upcoming shows from Live Nation for Ruoff Music Center and adds them to a Google Calendar. It also attempts to detect new or removed shows compared to the last run.
-*   `add_manual_shows_to_calendar.py`: Adds a predefined list of shows for a specific year (currently 2024) to Google Calendar. This is useful for historical data or when scraping is unreliable.
-*   `google_calendar_service.py`: Handles the interaction with the Google Calendar API.
+*   **Daily Scraping**: Automatically scrapes show data from the Live Nation website.
+*   **Google Calendar Integration**: Adds new shows to a specified Google Calendar and intelligently skips duplicates.
+*   **New/Removed Show Notifications**: Compares the latest scrape against the previous day's list and logs any new or removed shows.
+*   **HTML Report**: Generates a clean, print-friendly HTML report (`docs/index.html`) of all current shows, highlighting new ones and noting when they were first added.
+*   **Persistent Timestamps**: Tracks when each show was first detected and displays this "Added On" date in the report.
+
+## Project Structure
+
+The project is organized into several modules for clarity and maintainability:
+
+*   `run.py`: The main executable script that orchestrates the entire process.
+*   `scraper.py`: Handles all web scraping logic using `requests` and `BeautifulSoup`.
+*   `date_parser.py`: Manages complex date and time string parsing.
+*   `data_manager.py`: Handles reading from and writing to local data files (`.csv`, `.txt`, `.json`).
+*   `html_generator.py`: Contains the logic for creating the HTML report.
+*   `google_calendar_service.py`: Manages all interactions with the Google Calendar API.
 
 ## Setup
 
-1.  **Google Calendar API Credentials**:
+1.  **Google Cloud Project**:
     *   Enable the Google Calendar API in your Google Cloud Console.
-    *   Create OAuth 2.0 credentials and download the `credentials.json` file.
-    *   Place `credentials.json` in the root directory of this project.
-    *   The first time a script needing calendar access runs, it will prompt you to authorize access via a web browser. This will create a `token.json` file for future authentications.
-2.  **Python Environment**:
+    *   Create a **Service Account** and download its JSON key file.
+    *   Rename the key file to `credentials.json` and place it in the root directory.
+    *   Share your target Google Calendar with the service account's email address (found in `credentials.json`), giving it permission to "Make changes to events".
+
+2.  **GitHub Repository Secrets**:
+    *   `GOOGLE_CREDENTIALS_JSON`: The entire content of your `credentials.json` file.
+    *   `GOOGLE_TOKEN_JSON`: This is for the deprecated OAuth flow and is no longer needed with a Service Account. You can remove this secret.
+    *   `GH_PAT`: A GitHub Personal Access Token with `repo` scope, used by the workflow to push updated data files back to the repository.
+
+3.  **Python Environment**:
     *   It's recommended to use a virtual environment.
-    *   Install dependencies:
-        ```bash
-        pip install -r requirements.txt
-        ```
-3.  **Target Calendar ID**:
+    *   Install dependencies: `pip install -r requirements.txt`
+
+4.  **Target Calendar ID**:
     *   Open `google_calendar_service.py`.
-    *   Update the `TARGET_CALENDAR_ID` variable with the ID of the Google Calendar you want the shows to be added to.
+    *   Update the `TARGET_CALENDAR_ID` variable with your Google Calendar's ID.
+
+## Usage
+
+*   **Automated**: The GitHub Actions workflow in `.github/workflows/daily-scrape.yml` runs automatically every day.
+*   **Manual**: To run the script locally, use the batch file:
+    ```powershell
+    .\run_scraper.bat
+    ```
 
 ## Manually Added Shows for 2024
 

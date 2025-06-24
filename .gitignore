@@ -1,6 +1,7 @@
 # Credentials and Tokens
 credentials.json
 token.json
+base64.txt
 
 # Python specific
 __pycache__/
@@ -8,7 +9,6 @@ __pycache__/
 
 # VS Code settings
 .vscode/
-credentials.json
-credentials.json
 
-credentials.json
+# Temporary files
+commit_message.txt
