@@ -8,10 +8,12 @@ from dateutil import tz
 import google_calendar_service
 import shutil
 import os
+import json
 
 URL = "https://www.livenation.com/venue/KovZpvEk7A/ruoff-music-center-events"
 SHOWS_CSV_FILE = "ruoff_shows.csv"
 LAST_KNOWN_SHOWS_FILE = "last_known_shows.txt"
+SHOW_ADD_TIMES_FILE = "show_add_times.json"
 DEFAULT_EVENT_TIMEZONE = "America/New_York"
 
 def parse_show_datetime(date_str, current_year, default_timezone_str):
@@ -202,6 +204,19 @@ def save_current_shows_as_known(shows_data):
             # Use the original date_time_str for consistency in last_known_shows
             f.write(f"{show['title']}|{show['date_time_str']}\n")
 
+def load_show_add_times():
+    """Loads the timestamp of when each show was first added."""
+    try:
+        with open(SHOW_ADD_TIMES_FILE, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return {}
+
+def save_show_add_times(add_times):
+    """Saves the show addition timestamps to a file."""
+    with open(SHOW_ADD_TIMES_FILE, 'w', encoding='utf-8') as f:
+        json.dump(add_times, f, indent=4)
+
 def compare_and_notify(current_shows_data):
     """Compares current shows with last known shows and prints new/removed shows."""
     if not current_shows_data:
@@ -233,8 +248,8 @@ def compare_and_notify(current_shows_data):
 
     save_current_shows_as_known(current_shows_data)
 
-def generate_html_report(shows_data, new_shows_set):
-    """Generates a print-friendly HTML report of all shows, highlighting new shows."""
+def generate_html_report(shows_data, new_shows_set, show_add_times):
+    """Generates a print-friendly HTML report of all shows, highlighting new shows and showing add date."""
     # Ensure docs directory exists
     os.makedirs('docs', exist_ok=True)
     
@@ -277,6 +292,7 @@ def generate_html_report(shows_data, new_shows_set):
                     <tr>
                         <th>Date & Time</th>
                         <th>Show</th>
+                        <th style="font-size: 0.9em; color: #555;">Added On</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -310,11 +326,22 @@ def generate_html_report(shows_data, new_shows_set):
             new_badge = ' <span class="badge badge-new">New!</span>' if is_new else ''
             
             # Format the parsed date for display
-            date_display = show['parsed_date'].strftime('%a, %b %d, %Y ▪︎ %I:%M %p %Z')
+            date_display = show['parsed_date'].strftime('%a, %b %d, %Y | %I:%M %p %Z')
             
-            html_rows.append(f'<tr{new_show_class}><td>{date_display}</td><td>{show["title"]}{new_badge}</td></tr>')
+            # Get and format the "added on" timestamp
+            added_on_str = ""
+            added_timestamp_iso = show_add_times.get(show_key)
+            if added_timestamp_iso:
+                try:
+                    # Parse the ISO format string and format it to a simple M/D/YYYY
+                    added_dt = dateutil_parser.isoparse(added_timestamp_iso)
+                    added_on_str = f"{added_dt.month}/{added_dt.day}/{added_dt.year}"
+                except (ValueError, TypeError):
+                    added_on_str = "N/A"
+
+            html_rows.append(f'<tr{new_show_class}><td>{date_display}</td><td>{show["title"]}{new_badge}</td><td style="font-size: 0.9em; color: #555;">{added_on_str}</td></tr>')
     
-    table_rows_str = "\n".join(html_rows) if html_rows else "<tr><td colspan='2'>No shows found.</td></tr>"
+    table_rows_str = "\n".join(html_rows) if html_rows else "<tr><td colspan='3'>No shows found.</td></tr>"
 
     html_content = html_template.format(
         generated_time_str=generated_time_str,
@@ -368,9 +395,21 @@ if __name__ == "__main__":
         last_shows_set = get_last_known_shows()
         current_shows_set = set(f"{show['title']}|{show['date_time_str']}" for show in scraped_shows)
         new_shows = current_shows_set - last_shows_set
+
+        # --- Load, update, and save add times ---
+        show_add_times = load_show_add_times()
+        now_iso = datetime.now().isoformat()
+        
+        # For any new show, record its add time. Also backfill for any existing shows just in case.
+        for show_key in current_shows_set:
+            if show_key not in show_add_times:
+                show_add_times[show_key] = now_iso
+        
+        save_show_add_times(show_add_times)
+
         compare_and_notify(scraped_shows) # Compare based on raw scraped data
         # --- Generate HTML report ---
-        generate_html_report(scraped_shows, new_shows)
+        generate_html_report(scraped_shows, new_shows, show_add_times)
 
         if processed_shows_for_calendar:
             print("\n--- Adding/Checking Shows in Google Calendar ---")

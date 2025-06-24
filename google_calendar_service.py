@@ -53,36 +53,27 @@ def add_event_to_calendar(service, summary, start_datetime, end_datetime, descri
 
     # Check if event already exists
     try:
-        # start_datetime is already an aware datetime object.
-        # .isoformat() on an aware object includes the timezone offset, which is RFC3339 compliant.
-        time_min_str = start_datetime.isoformat()
-        # Check for events starting in a very narrow window (e.g., same minute)
-        time_max_str = (start_datetime + datetime.timedelta(minutes=1)).isoformat()
+        # To find duplicates, search for events in a time window around the target start time.
+        # We'll search +/- 5 minutes and then check for an exact title match in the results.
+        # Using a wider window helps catch duplicates if there are minor time discrepancies.
+        time_min = start_datetime - datetime.timedelta(minutes=5)
+        time_max = start_datetime + datetime.timedelta(minutes=5)
 
         events_result = service.events().list(
             calendarId=TARGET_CALENDAR_ID,
-            timeMin=time_min_str, 
-            timeMax=time_max_str,
-            q=summary, # Filter by summary (title) on the server side if possible
+            timeMin=time_min.isoformat(),
+            timeMax=time_max.isoformat(),
+            # q=summary,  # Removing this as it's a broad search. We'll filter by exact title in the loop.
             singleEvents=True,
             orderBy='startTime'
         ).execute()
         events = events_result.get('items', [])
 
-        for event_item in events: # Renamed to avoid conflict with the 'event' dict being built
+        # If any event in the window has the same title, we assume it's a duplicate.
+        for event_item in events:
             if event_item['summary'] == summary:
-                event_item_start_str = event_item['start'].get('dateTime')
-                if not event_item_start_str: # Should be a timed event
-                    continue
-                
-                try:
-                    event_item_start_dt = dateutil_parser.isoparse(event_item_start_str)
-                    # Direct comparison of aware datetime objects handles timezones correctly
-                    if event_item_start_dt == start_datetime:
-                        print(f"Event '{summary}' starting at {start_datetime.strftime('%Y-%m-%d %I:%M %p %Z')} already exists. Skipping.")
-                        return None
-                except ValueError as e:
-                    print(f"Warning: Could not parse start time '{event_item_start_str}' for existing event '{summary}': {e}. Considering it not a duplicate for safety.")
+                print(f"Event '{summary}' starting around the same time already exists. Skipping.")
+                return None
 
     except HttpError as error:
         print(f"An API error occurred while checking for existing events: {error}")
