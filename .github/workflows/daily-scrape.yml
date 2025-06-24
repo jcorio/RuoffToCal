@@ -31,7 +31,7 @@ jobs:
         shell: bash
 
       - name: Run scrape script
-        run: python scrape_ruoff_shows.py
+        run: python run.py
 
       - name: Commit and push updated files
         env:
